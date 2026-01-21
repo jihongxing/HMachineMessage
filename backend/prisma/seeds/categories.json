@@ -1,0 +1,54 @@
+{
+  "categories": [
+    {
+      "name": "农业机械",
+      "slug": "agricultural",
+      "description": "用于农业生产的各类机械设备",
+      "sort": 1,
+      "children": [
+        { "name": "耕整地机械", "slug": "tillage", "sort": 1 },
+        { "name": "播种/插秧机械", "slug": "planting", "sort": 2 },
+        { "name": "收获机械", "slug": "harvester", "sort": 3 },
+        { "name": "植保机械", "slug": "protection", "sort": 4 },
+        { "name": "灌溉机械", "slug": "irrigation", "sort": 5 }
+      ]
+    },
+    {
+      "name": "工程机械",
+      "slug": "construction",
+      "description": "用于工程建设的各类机械设备",
+      "sort": 2,
+      "children": [
+        { "name": "挖掘机械", "slug": "excavator", "sort": 1 },
+        { "name": "装载机械", "slug": "loader", "sort": 2 },
+        { "name": "起重机械", "slug": "crane", "sort": 3 },
+        { "name": "压实机械", "slug": "compactor", "sort": 4 },
+        { "name": "混凝土机械", "slug": "concrete", "sort": 5 }
+      ]
+    },
+    {
+      "name": "运输机械",
+      "slug": "transport",
+      "description": "用于货物运输的各类机械设备",
+      "sort": 3,
+      "children": [
+        { "name": "载货汽车", "slug": "truck", "sort": 1 },
+        { "name": "专用运输车", "slug": "special-vehicle", "sort": 2 },
+        { "name": "叉车", "slug": "forklift", "sort": 3 },
+        { "name": "牵引车", "slug": "tractor", "sort": 4 }
+      ]
+    },
+    {
+      "name": "其他机械",
+      "slug": "other",
+      "description": "其他类型的机械设备",
+      "sort": 4,
+      "children": [
+        { "name": "林业机械", "slug": "forestry", "sort": 1 },
+        { "name": "畜牧机械", "slug": "livestock", "sort": 2 },
+        { "name": "园林机械", "slug": "garden", "sort": 3 },
+        { "name": "矿山机械", "slug": "mining", "sort": 4 }
+      ]
+    }
+  ]
+}

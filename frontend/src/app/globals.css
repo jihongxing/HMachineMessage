@@ -1,0 +1,339 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+/* ============================================
+   CSS变量定义 - 主题系统
+   ============================================ */
+
+/* 浅色主题（默认） */
+:root[data-theme="light"] {
+  /* 主色调 */
+  --color-primary: #1890ff;
+  --color-success: #52c41a;
+  --color-warning: #faad14;
+  --color-error: #f5222d;
+  
+  /* 背景色 */
+  --bg-page: #f5f5f5;
+  --bg-card: #ffffff;
+  --bg-hover: #fafafa;
+  --bg-disabled: #f5f5f5;
+  
+  /* 文字色 */
+  --text-primary: #262626;
+  --text-secondary: #595959;
+  --text-tertiary: #8c8c8c;
+  --text-disabled: #bfbfbf;
+  
+  /* 边框色 */
+  --border-default: #d9d9d9;
+  --border-divider: #f0f0f0;
+  
+  /* 阴影 */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 深色主题 */
+:root[data-theme="dark"] {
+  /* 主色调 */
+  --color-primary: #177ddc;
+  --color-success: #49aa19;
+  --color-warning: #d89614;
+  --color-error: #d32029;
+  
+  /* 背景色 */
+  --bg-page: #141414;
+  --bg-card: #1f1f1f;
+  --bg-hover: #262626;
+  --bg-disabled: #1f1f1f;
+  
+  /* 文字色 */
+  --text-primary: #e8e8e8;
+  --text-secondary: #a6a6a6;
+  --text-tertiary: #737373;
+  --text-disabled: #595959;
+  
+  /* 边框色 */
+  --border-default: #434343;
+  --border-divider: #303030;
+  
+  /* 阴影 */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================
+   字体系统
+   ============================================ */
+
+:root {
+  /* 基础字体大小 */
+  --font-size-base: 14px; /* 移动端 */
+  --font-scale: 1; /* 字体缩放比例 */
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --font-size-base: 15px; /* 桌面端 */
+  }
+}
+
+html {
+  font-size: calc(var(--font-size-base) * var(--font-scale));
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", 
+               "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", 
+               "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   主题切换动画
+   ============================================ */
+
+* {
+  transition: background-color 0.3s ease, 
+              color 0.3s ease, 
+              border-color 0.3s ease;
+}
+
+/* ============================================
+   通用样式
+   ============================================ */
+
+/* 卡片 */
+.card {
+  background-color: var(--bg-card);
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+  padding: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .card {
+    padding: 1.5rem;
+  }
+}
+
+.card:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+/* 按钮 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s ease;
+  min-height: 40px;
+}
+
+@media (max-width: 767px) {
+  .btn {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-primary:active {
+  opacity: 0.8;
+}
+
+/* 输入框 */
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  font-size: 1rem;
+  color: var(--text-primary);
+  background-color: var(--bg-card);
+  transition: border-color 0.3s ease;
+  height: 48px;
+}
+
+@media (min-width: 1024px) {
+  .input {
+    height: 40px;
+  }
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* 链接 */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: opacity 0.3s ease;
+}
+
+a:hover {
+  opacity: 0.8;
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-page);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* ============================================
+   响应式工具类
+   ============================================ */
+
+.container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 0 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1200px;
+    padding: 0 2rem;
+  }
+}
+
+/* 隐藏/显示 */
+.mobile-only {
+  display: block;
+}
+
+.desktop-only {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .mobile-only {
+    display: none;
+  }
+  
+  .desktop-only {
+    display: block;
+  }
+}
+
+:root[data-theme="light"] {
+  --color-primary: #1890ff;
+  --color-success: #52c41a;
+  --color-warning: #faad14;
+  --color-error: #f5222d;
+  
+  --bg-page: #f5f5f5;
+  --bg-card: #ffffff;
+  --bg-hover: #fafafa;
+  
+  --text-primary: #262626;
+  --text-secondary: #595959;
+  --text-tertiary: #8c8c8c;
+  
+  --border-default: #d9d9d9;
+}
+
+:root[data-theme="dark"] {
+  --color-primary: #177ddc;
+  --color-success: #49aa19;
+  --color-warning: #d89614;
+  --color-error: #d32029;
+  
+  --bg-page: #141414;
+  --bg-card: #1f1f1f;
+  --bg-hover: #262626;
+  
+  --text-primary: #e8e8e8;
+  --text-secondary: #a6a6a6;
+  --text-tertiary: #737373;
+  
+  --border-default: #434343;
+}
+
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+html {
+  font-size: calc(var(--font-size-base, 14px) * var(--font-scale, 1));
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+}

@@ -1,0 +1,335 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id              BigInt    @id @default(autoincrement())
+  phone           String    @unique @db.VarChar(20)
+  password        String?   @db.VarChar(100)
+  nickname        String    @db.VarChar(50)
+  avatar          String?   @db.VarChar(200)
+  userLevel       Int       @default(0) @map("user_level") @db.SmallInt // 0新/1普通/2优质/3认证
+  realName        String?   @map("real_name") @db.VarChar(50)
+  idCard          String?   @map("id_card") @db.VarChar(100) // 加密存储
+  companyName     String?   @map("company_name") @db.VarChar(100)
+  businessLicense String?   @map("business_license") @db.VarChar(50)
+  balance         Decimal   @default(0) @db.Decimal(10, 2)
+  publishCount    Int       @default(0) @map("publish_count")
+  passCount       Int       @default(0) @map("pass_count")
+  violationCount  Int       @default(0) @map("violation_count")
+  status          Int       @default(0) @db.SmallInt // 0正常/1封禁
+  lastLogin       DateTime? @map("last_login")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  equipment       Equipment[]
+  contactViews    ContactView[]
+  favorites       Favorite[]
+  reviews         Review[]
+  orders          Order[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+// 设备表
+model Equipment {
+  id             BigInt    @id @default(autoincrement())
+  userId         BigInt    @map("user_id")
+  category1      String    @map("category_1") @db.VarChar(50)
+  category2      String    @map("category_2") @db.VarChar(50)
+  model          String    @db.VarChar(100)
+  provinceId     Int       @map("province_id")
+  cityId         Int       @map("city_id")
+  countyId       Int       @map("county_id")
+  address        String    @db.VarChar(200)
+  latitude       Decimal?  @db.Decimal(10, 7)
+  longitude      Decimal?  @db.Decimal(10, 7)
+  price          Decimal   @db.Decimal(10, 2)
+  priceUnit      String    @default("day") @map("price_unit") @db.VarChar(20)
+  phone          String    @db.VarChar(20)
+  wechat         String?   @db.VarChar(50)
+  images         Json
+  description    String?   @db.Text
+  capacity       String?   @db.VarChar(100)
+  availableStart DateTime? @map("available_start") @db.Date
+  availableEnd   DateTime? @map("available_end") @db.Date
+  status         Int       @default(0) @db.SmallInt
+  rejectReason   String?   @map("reject_reason") @db.VarChar(200)
+  rankLevel      Int       @default(0) @map("rank_level") @db.SmallInt
+  rankExpire     DateTime? @map("rank_expire")
+  rankRegion     String?   @map("rank_region") @db.VarChar(50)
+  viewCount      Int       @default(0) @map("view_count")
+  contactCount   Int       @default(0) @map("contact_count")
+  favoriteCount  Int       @default(0) @map("favorite_count")
+  scanCount      Int       @default(0) @map("scan_count")
+  rating         Decimal   @default(0) @db.Decimal(2, 1)
+  ratingCount    Int       @default(0) @map("rating_count")
+  qrcodeUrl      String?   @map("qrcode_url") @db.VarChar(200)
+  riskScore      Int       @default(0) @map("risk_score")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id])
+  province     Region        @relation("EquipmentProvince", fields: [provinceId], references: [id])
+  city         Region        @relation("EquipmentCity", fields: [cityId], references: [id])
+  county       Region        @relation("EquipmentCounty", fields: [countyId], references: [id])
+  contactViews ContactView[]
+  favorites    Favorite[]
+  reviews      Review[]
+  orders       Order[]
+
+  @@index([userId])
+  @@index([category1, category2])
+  @@index([provinceId, cityId, countyId])
+  @@index([status, rankLevel, createdAt])
+  @@map("equipment")
+}
+
+// 联系方式查看记录表
+model ContactView {
+  id          BigInt   @id @default(autoincrement())
+  equipmentId BigInt   @map("equipment_id")
+  userId      BigInt   @map("user_id")
+  viewType    String   @map("view_type") @db.VarChar(20) // phone/wechat
+  ipAddress   String   @map("ip_address") @db.VarChar(50)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([equipmentId])
+  @@index([userId, createdAt])
+  @@map("contact_views")
+}
+
+// 收藏表
+model Favorite {
+  id          BigInt   @id @default(autoincrement())
+  equipmentId BigInt   @map("equipment_id")
+  userId      BigInt   @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([equipmentId, userId])
+  @@index([userId])
+  @@map("favorites")
+}
+
+// 评价表
+model Review {
+  id          BigInt   @id @default(autoincrement())
+  equipmentId BigInt   @map("equipment_id")
+  userId      BigInt   @map("user_id")
+  rating      Int      @db.SmallInt // 1-5星
+  content     String   @db.VarChar(500)
+  images      Json? // 图片URL数组
+  tags        Json? // 评价标签数组
+  status      Int      @default(0) @db.SmallInt // 0待审核/1已发布/2已拒绝
+  reportCount Int      @default(0) @map("report_count") // 举报次数
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([equipmentId, status])
+  @@index([userId])
+  @@map("reviews")
+}
+
+// 订单表
+model Order {
+  id          BigInt   @id @default(autoincrement())
+  orderNo     String   @unique @map("order_no") @db.VarChar(32)
+  equipmentId BigInt   @map("equipment_id")
+  userId      BigInt   @map("user_id")
+  rankLevel   Int      @map("rank_level") @db.SmallInt // 1推荐/2置顶
+  rankRegion  String   @map("rank_region") @db.VarChar(50) // 推广区域
+  duration    Int // 购买时长（月）
+  amount      Decimal  @db.Decimal(10, 2) // 订单金额
+  payAmount   Decimal  @map("pay_amount") @db.Decimal(10, 2) // 实付金额
+  payMethod   String?  @map("pay_method") @db.VarChar(20) // wechat/alipay/balance
+  status      Int      @default(0) @db.SmallInt // 0待支付/1已支付/2已退款/3已取消
+  paidAt      DateTime? @map("paid_at")
+  refundAt    DateTime? @map("refund_at")
+  refundAmount Decimal? @map("refund_amount") @db.Decimal(10, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([equipmentId])
+  @@index([status])
+  @@map("orders")
+}
+
+// 通知表
+model Notification {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt   @map("user_id")
+  type      String   @db.VarChar(50) // audit/payment/interaction/system
+  title     String   @db.VarChar(100)
+  content   String   @db.Text
+  relatedId BigInt?  @map("related_id") // 关联ID（设备/订单等）
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// 审核日志表
+model AuditLog {
+  id          BigInt   @id @default(autoincrement())
+  equipmentId BigInt   @map("equipment_id")
+  auditorId   BigInt?  @map("auditor_id") // 审核员ID，null表示自动审核
+  action      String   @db.VarChar(20) // approve/reject
+  reason      String?  @db.VarChar(200)
+  riskScore   Int?     @map("risk_score") // 审核时的风险评分
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  auditor User? @relation(fields: [auditorId], references: [id])
+
+  @@index([equipmentId])
+  @@index([auditorId])
+  @@map("audit_logs")
+}
+
+// 分类表
+model Category {
+  id          Int      @id @default(autoincrement())
+  parentId    Int?     @map("parent_id") // null表示一级分类
+  name        String   @db.VarChar(50)
+  slug        String   @db.VarChar(50) // URL友好标识
+  description String?  @db.VarChar(200)
+  icon        String?  @db.VarChar(200)
+  sort        Int      @default(0) // 排序
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+// 地区表
+model Region {
+  id        Int      @id @default(autoincrement())
+  parentId  Int?     @map("parent_id") // null表示省级
+  name      String   @db.VarChar(50)
+  code      String   @db.VarChar(20) // 行政区划代码
+  level     Int      @db.SmallInt // 1省/2市/3县
+  latitude  Decimal? @db.Decimal(10, 7)
+  longitude Decimal? @db.Decimal(10, 7)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  equipmentProvince Equipment[] @relation("EquipmentProvince")
+  equipmentCity     Equipment[] @relation("EquipmentCity")
+  equipmentCounty   Equipment[] @relation("EquipmentCounty")
+
+  @@index([parentId])
+  @@index([code])
+  @@map("regions")
+}
+
+// 系统配置表
+model SystemConfig {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(50)
+  value     String   @db.Text
+  type      String   @db.VarChar(20) // string/number/boolean/json
+  group     String   @db.VarChar(50) // 配置分组
+  description String? @db.VarChar(200)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_configs")
+}
+
+// 短信验证码表
+model SmsCode {
+  id        BigInt   @id @default(autoincrement())
+  phone     String   @db.VarChar(20)
+  code      String   @db.VarChar(10)
+  type      String   @db.VarChar(20) // register/login/reset
+  ipAddress String   @map("ip_address") @db.VarChar(50)
+  isUsed    Boolean  @default(false) @map("is_used")
+  expireAt  DateTime @map("expire_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([phone, type, createdAt])
+  @@map("sms_codes")
+}
+
+// 举报表
+model Report {
+  id          BigInt   @id @default(autoincrement())
+  targetType  String   @map("target_type") @db.VarChar(20) // equipment/review
+  targetId    BigInt   @map("target_id")
+  reporterId  BigInt   @map("reporter_id")
+  reason      String   @db.VarChar(200)
+  images      Json? // 举报证据图片
+  status      Int      @default(0) @db.SmallInt // 0待处理/1已处理/2已驳回
+  handleResult String? @map("handle_result") @db.VarChar(200)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([targetType, targetId])
+  @@index([reporterId])
+  @@map("reports")
+}
+
+// 浏览历史表
+model ViewHistory {
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt   @map("user_id")
+  equipmentId BigInt   @map("equipment_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("view_histories")
+}
+
+// 充值记录表
+model Recharge {
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt   @map("user_id")
+  orderNo     String   @unique @map("order_no") @db.VarChar(32)
+  amount      Decimal  @db.Decimal(10, 2)
+  bonusAmount Decimal  @default(0) @map("bonus_amount") @db.Decimal(10, 2) // 赠送金额
+  payMethod   String   @map("pay_method") @db.VarChar(20)
+  status      Int      @default(0) @db.SmallInt // 0待支付/1已支付/2已取消
+  paidAt      DateTime? @map("paid_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("recharges")
+}
+
+// 扫码记录表
+model ScanLog {
+  id          BigInt   @id @default(autoincrement())
+  equipmentId BigInt   @map("equipment_id")
+  source      String?  @db.VarChar(50) // wechat/browser/other
+  ipAddress   String   @map("ip_address") @db.VarChar(50)
+  userAgent   String?  @map("user_agent") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([equipmentId, createdAt])
+  @@map("scan_logs")
+}
