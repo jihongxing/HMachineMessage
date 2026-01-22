@@ -40,6 +40,14 @@ export class SeoController {
   });
 
   /**
+   * 生成sitemap数据（JSON格式）
+   */
+  getSitemapData = asyncHandler(async (req: Request, res: Response) => {
+    const urls = await seoService.generateSitemapData();
+    ApiResponse.success(res, urls);
+  });
+
+  /**
    * 生成sitemap.xml
    */
   generateSitemap = asyncHandler(async (req: Request, res: Response) => {
@@ -94,6 +102,28 @@ export class SeoController {
     
     await seoService.recordSearchKeyword(keyword, userId);
     ApiResponse.success(res, { message: '记录成功' });
+  });
+
+  /**
+   * 获取面包屑结构化数据
+   */
+  getBreadcrumbStructuredData = asyncHandler(async (req: Request, res: Response) => {
+    const { items } = req.body;
+    
+    if (!Array.isArray(items)) {
+      throw new AppError('items必须是数组', 400);
+    }
+    
+    const data = seoService.generateBreadcrumbStructuredData(items);
+    ApiResponse.success(res, data);
+  });
+
+  /**
+   * 获取组织结构化数据
+   */
+  getOrganizationStructuredData = asyncHandler(async (req: Request, res: Response) => {
+    const data = seoService.generateOrganizationStructuredData();
+    ApiResponse.success(res, data);
   });
 
   /**

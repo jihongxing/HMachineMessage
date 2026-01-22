@@ -51,7 +51,7 @@ export default function UsersPage() {
 
     try {
       const res = await adminApi.updateUserStatus(id, {
-        action: 'ban',
+        status: 1,
         reason,
         duration: parseInt(duration) || undefined
       });
@@ -64,7 +64,7 @@ export default function UsersPage() {
 
   const handleUnban = async (id: string) => {
     try {
-      const res = await adminApi.updateUserStatus(id, { action: 'unban' });
+      const res = await adminApi.updateUserStatus(id, { status: 0 });
       showToast({ type: 'success', message: '解封成功' });
       loadUsers();
     } catch (error: any) {

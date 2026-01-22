@@ -75,7 +75,7 @@ export default function CreateOrderContent() {
         duration
       });
       
-      const orderId = response.data?.orderId || response.orderId;
+      const orderId = response.data?.orderId || (response as any).orderId;
       
       if (!orderId) {
         throw new Error('订单ID获取失败');

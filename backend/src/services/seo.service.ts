@@ -112,15 +112,15 @@ export class SeoService {
   }
 
   /**
-   * 生成站点地图数据
+   * 生成站点地图数据（JSON格式，供Next.js使用）
    */
-  async generateSitemap(): Promise<Array<{
+  async generateSitemapData(): Promise<Array<{
     url: string;
     lastmod: string;
     changefreq: string;
     priority: number;
   }>> {
-    const baseUrl = process.env.FRONTEND_URL || 'https://example.com';
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const urls: Array<{
       url: string;
       lastmod: string;
@@ -136,12 +136,20 @@ export class SeoService {
       priority: 1.0,
     });
 
-    // 设备列表
+    // 设备列表页
+    urls.push({
+      url: `${baseUrl}/equipment`,
+      lastmod: new Date().toISOString(),
+      changefreq: 'hourly',
+      priority: 0.9,
+    });
+
+    // 已发布的设备详情页（限制数量避免sitemap过大）
     const equipments = await prisma.equipment.findMany({
       where: { status: 1 },
       select: { id: true, updatedAt: true },
       orderBy: { updatedAt: 'desc' },
-      take: 10000,
+      take: 5000, // 限制5000条
     });
 
     for (const equipment of equipments) {
@@ -153,36 +161,53 @@ export class SeoService {
       });
     }
 
-    // 分类页
+    // 分类页（一级分类）
     const categories = await prisma.category.findMany({
-      where: { isActive: true },
+      where: { 
+        isActive: true,
+        parentId: null 
+      },
+      select: { id: true, slug: true, updatedAt: true },
     });
 
     for (const category of categories) {
       urls.push({
-        url: `${baseUrl}/category/${category.slug}`,
+        url: `${baseUrl}/equipment?category=${category.slug}`,
         lastmod: category.updatedAt.toISOString(),
-        changefreq: 'weekly',
+        changefreq: 'daily',
         priority: 0.7,
       });
     }
 
-    // 地区页
-    const regions = await prisma.region.findMany({
-      where: { level: { in: [1, 2] } },
-      take: 500,
+    // 省级地区页
+    const provinces = await prisma.region.findMany({
+      where: { level: 1 },
+      select: { code: true, name: true, updatedAt: true },
+      take: 100,
     });
 
-    for (const region of regions) {
+    for (const province of provinces) {
       urls.push({
-        url: `${baseUrl}/region/${region.code}`,
-        lastmod: region.updatedAt.toISOString(),
-        changefreq: 'weekly',
+        url: `${baseUrl}/equipment?province=${province.code}`,
+        lastmod: province.updatedAt.toISOString(),
+        changefreq: 'daily',
         priority: 0.6,
       });
     }
 
     return urls;
+  }
+
+  /**
+   * 生成站点地图XML（传统格式）
+   */
+  async generateSitemap(): Promise<Array<{
+    url: string;
+    lastmod: string;
+    changefreq: string;
+    priority: number;
+  }>> {
+    return this.generateSitemapData();
   }
 
   /**
@@ -202,15 +227,18 @@ Sitemap: ${baseUrl}/sitemap.xml`;
   }
 
   /**
-   * 生成结构化数据
+   * 生成结构化数据（Product Schema）
    */
   async generateStructuredData(equipmentId: bigint): Promise<object> {
     const equipment = await prisma.equipment.findUnique({
       where: { id: equipmentId },
       include: {
         user: {
-          select: { nickname: true },
+          select: { nickname: true, phone: true },
         },
+        province: { select: { name: true } },
+        city: { select: { name: true } },
+        county: { select: { name: true } },
       },
     });
 
@@ -219,30 +247,89 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     }
 
     const images = equipment.images as string[];
+    const location = `${equipment.province?.name || ''}${equipment.city?.name || ''}${equipment.county?.name || ''}`;
 
     return {
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: equipment.model,
-      description: equipment.description || `${equipment.model} - ${equipment.category1}${equipment.category2}`,
+      description: equipment.description || `${equipment.model} - ${equipment.category1}${equipment.category2}，位于${location}`,
       image: images && images.length > 0 ? images : undefined,
-      offers: {
-        '@type': 'Offer',
-        price: equipment.price.toString(),
-        priceCurrency: 'CNY',
-        availability: 'https://schema.org/InStock',
-        priceValidUntil: equipment.availableEnd?.toISOString(),
-      },
-      aggregateRating: equipment.ratingCount > 0 ? {
-        '@type': 'AggregateRating',
-        ratingValue: equipment.rating.toString(),
-        reviewCount: equipment.ratingCount,
-      } : undefined,
       brand: {
         '@type': 'Brand',
         name: equipment.user.nickname,
       },
       category: `${equipment.category1} > ${equipment.category2}`,
+      offers: {
+        '@type': 'Offer',
+        price: equipment.price.toString(),
+        priceCurrency: 'CNY',
+        availability: equipment.status === 1 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        priceValidUntil: equipment.availableEnd?.toISOString(),
+        seller: {
+          '@type': 'Organization',
+          name: equipment.user.nickname,
+        },
+      },
+      aggregateRating: equipment.ratingCount > 0 ? {
+        '@type': 'AggregateRating',
+        ratingValue: equipment.rating.toString(),
+        reviewCount: equipment.ratingCount,
+        bestRating: '5',
+        worstRating: '1',
+      } : undefined,
+      additionalProperty: [
+        {
+          '@type': 'PropertyValue',
+          name: '计价单位',
+          value: equipment.priceUnit,
+        },
+        {
+          '@type': 'PropertyValue',
+          name: '所在地区',
+          value: location,
+        },
+      ],
+    };
+  }
+
+  /**
+   * 生成面包屑导航结构化数据
+   */
+  generateBreadcrumbStructuredData(items: Array<{ name: string; url: string }>): object {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: items.map((item, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: item.name,
+        item: item.url,
+      })),
+    };
+  }
+
+  /**
+   * 生成组织结构化数据
+   */
+  generateOrganizationStructuredData(): object {
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: '重型机械信息中介平台',
+      url: baseUrl,
+      logo: `${baseUrl}/logo.png`,
+      description: '全国重型机械信息展示和撮合服务平台',
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: '客户服务',
+        availableLanguage: ['zh-CN'],
+      },
+      sameAs: [
+        // 社交媒体链接
+      ],
     };
   }
 

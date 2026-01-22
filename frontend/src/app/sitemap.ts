@@ -1,19 +1,32 @@
 import { MetadataRoute } from 'next';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/seo/sitemap.xml`);
+    // 从后端获取动态sitemap数据
+    const response = await fetch(`${apiUrl}/seo/sitemap-data`, {
+      next: { revalidate: 3600 } // 1小时缓存
+    });
     
     if (!response.ok) {
+      console.error('Failed to fetch sitemap data:', response.status);
       return getDefaultSitemap(baseUrl);
     }
 
-    const text = await response.text();
-    const urls = parseSitemapXml(text);
+    const data = await response.json();
     
-    return urls;
+    if (data.code !== 0 || !data.data) {
+      return getDefaultSitemap(baseUrl);
+    }
+
+    return data.data.map((item: any) => ({
+      url: item.url,
+      lastModified: new Date(item.lastmod),
+      changeFrequency: item.changefreq as any,
+      priority: item.priority,
+    }));
   } catch (error) {
     console.error('Failed to fetch sitemap:', error);
     return getDefaultSitemap(baseUrl);
@@ -28,29 +41,11 @@ function getDefaultSitemap(baseUrl: string): MetadataRoute.Sitemap {
       changeFrequency: 'daily',
       priority: 1,
     },
+    {
+      url: `${baseUrl}/equipment`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.9,
+    },
   ];
-}
-
-function parseSitemapXml(xml: string): MetadataRoute.Sitemap {
-  const urls: MetadataRoute.Sitemap = [];
-  const urlMatches = xml.matchAll(/<url>(.*?)<\/url>/gs);
-
-  for (const match of urlMatches) {
-    const urlBlock = match[1];
-    const loc = urlBlock.match(/<loc>(.*?)<\/loc>/)?.[1];
-    const lastmod = urlBlock.match(/<lastmod>(.*?)<\/lastmod>/)?.[1];
-    const changefreq = urlBlock.match(/<changefreq>(.*?)<\/changefreq>/)?.[1];
-    const priority = urlBlock.match(/<priority>(.*?)<\/priority>/)?.[1];
-
-    if (loc) {
-      urls.push({
-        url: loc,
-        lastModified: lastmod ? new Date(lastmod) : new Date(),
-        changeFrequency: changefreq as any,
-        priority: priority ? parseFloat(priority) : 0.5,
-      });
-    }
-  }
-
-  return urls;
 }

@@ -4,9 +4,11 @@ import { getPriceUnitShort } from '@/lib/utils/priceUnit';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Breadcrumb from '@/components/Breadcrumb';
+import StructuredData from '@/components/StructuredData';
 import Image from 'next/image';
 import { equipmentApi, favoriteApi } from '@/lib/api';
 import { useAppStore, useUserStore } from '@/lib/store';
+import { Modal } from '@/components/ui';
 
 interface Equipment {
   id: string;
@@ -51,6 +53,10 @@ export default function EquipmentDetailPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [wechatNumber, setWechatNumber] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [structuredData, setStructuredData] = useState<any>(null);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrcodeUrl, setQrcodeUrl] = useState<string>('');
+  const [qrLoading, setQrLoading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -66,6 +72,19 @@ export default function EquipmentDetailPage() {
     try {
       const res = await equipmentApi.getDetail(params.id as string);
       setEquipment(res.data);
+      
+      // 获取结构化数据
+      try {
+        const seoRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/seo/structured-data/${params.id}`);
+        if (seoRes.ok) {
+          const seoData = await seoRes.json();
+          if (seoData.code === 0) {
+            setStructuredData(seoData.data);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch structured data:', error);
+      }
     } catch (error: any) {
       showToast({ type: 'error', message: error.message || '加载失败' });
     } finally {
@@ -126,6 +145,37 @@ export default function EquipmentDetailPage() {
     }
   };
 
+  const generateQRCode = async () => {
+    if (qrcodeUrl) {
+      setShowQRModal(true);
+      return;
+    }
+
+    setQrLoading(true);
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/qrcode/equipment/${params.id}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      const data = await response.json();
+      if (data.code === 0) {
+        setQrcodeUrl(data.data.qrcodeUrl);
+        setShowQRModal(true);
+      } else {
+        showToast({ type: 'error', message: data.message || '生成失败' });
+      }
+    } catch (error) {
+      showToast({ type: 'error', message: '生成二维码失败' });
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
   if (loading) {
     return <div className="container py-8 text-center">加载中...</div>;
   }
@@ -136,6 +186,9 @@ export default function EquipmentDetailPage() {
 
   return (
     <div className="container py-4 md:py-6">
+      {/* SEO结构化数据 */}
+      {structuredData && <StructuredData data={structuredData} />}
+      
       <Breadcrumb
         items={[
           { label: equipment.category1, href: `/equipment?category1=${equipment.category1}` },
@@ -145,18 +198,20 @@ export default function EquipmentDetailPage() {
       />
 
       <div className="card mt-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {/* 图片 */}
-          <div>
-            {equipment.images && equipment.images.length > 0 && (
-              <div className="relative w-full h-64 md:h-96 bg-gray-200 rounded-lg overflow-hidden">
-                <Image src={equipment.images[0]} alt={equipment.model} fill className="object-cover" priority />
-              </div>
-            )}
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 md:gap-6">
+          {/* 左侧：图片和信息 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {/* 图片 */}
+            <div>
+              {equipment.images && equipment.images.length > 0 && (
+                <div className="relative w-full h-64 md:h-96 bg-gray-200 rounded-lg overflow-hidden">
+                  <Image src={equipment.images[0]} alt={equipment.model} fill className="object-cover" priority />
+                </div>
+              )}
+            </div>
 
-          {/* 信息 */}
-          <div>
+            {/* 信息 */}
+            <div>
             <h1 className="text-xl md:text-3xl font-bold mb-4">{equipment.model}</h1>
             <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-6">
               <span>{equipment.category1} / {equipment.category2}</span>
@@ -212,10 +267,11 @@ export default function EquipmentDetailPage() {
                 {isFavorited ? '❤️ 已收藏' : '🤍 收藏'}
               </button>
               <button
-                onClick={() => router.push(`/equipment/${equipment.id}/qrcode`)}
-                className="btn"
+                onClick={generateQRCode}
+                disabled={qrLoading}
+                className="btn lg:hidden"
               >
-                📱 二维码
+                {qrLoading ? '⏳' : '📱'} 二维码
               </button>
             </div>
             
@@ -230,6 +286,28 @@ export default function EquipmentDetailPage() {
               <p className="text-xs text-gray-500 mt-1 text-center">
                 提升排名，获得更多曝光
               </p>
+            </div>
+            </div>
+          </div>
+
+          {/* 右侧：二维码（桌面端显示） */}
+          <div className="hidden lg:block">
+            <div className="sticky top-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+              <h3 className="text-sm font-medium mb-3">扫码分享</h3>
+              {qrcodeUrl ? (
+                <div>
+                  <img src={qrcodeUrl} alt="设备二维码" className="w-40 h-40 mx-auto" />
+                  <p className="text-xs text-gray-500 mt-2">扫码查看设备详情</p>
+                </div>
+              ) : (
+                <button
+                  onClick={generateQRCode}
+                  disabled={qrLoading}
+                  className="btn btn-sm w-full"
+                >
+                  {qrLoading ? '生成中...' : '生成二维码'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -260,6 +338,35 @@ export default function EquipmentDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* 移动端二维码弹窗 */}
+      <Modal
+        isOpen={showQRModal}
+        onClose={() => setShowQRModal(false)}
+        title="设备二维码"
+      >
+        <div className="text-center py-4">
+          {qrcodeUrl && (
+            <>
+              <img src={qrcodeUrl} alt="设备二维码" className="w-64 h-64 mx-auto" />
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
+                扫码查看设备详情
+              </p>
+              <button
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = qrcodeUrl;
+                  link.download = `equipment-${equipment.id}-qrcode.png`;
+                  link.click();
+                }}
+                className="btn btn-primary mt-4"
+              >
+                下载二维码
+              </button>
+            </>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

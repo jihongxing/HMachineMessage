@@ -51,7 +51,7 @@ export default function OrdersPage() {
       };
       
       const res = await orderApi.getList({
-        status: statusMap[status],
+        status: statusMap[status]?.toString(),
         page,
         pageSize: 20
       });
