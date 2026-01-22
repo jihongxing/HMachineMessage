@@ -8,7 +8,7 @@ import StructuredData from '@/components/StructuredData';
 import Image from 'next/image';
 import { equipmentApi, favoriteApi } from '@/lib/api';
 import { useAppStore, useUserStore } from '@/lib/store';
-import { Modal } from '@/components/ui';
+import { ModalContainer as Modal } from '@/components/ui';
 
 interface Equipment {
   id: string;
