@@ -26,6 +26,9 @@ yarn-error.log*
 # Local env files
 .env
 .env*.local
+backend/.env
+frontend/.env.local
+frontend/.env.production
 
 # Vercel
 .vercel
@@ -37,7 +40,20 @@ next-env.d.ts
 # IDE
 .vscode/
 .idea/
+.kiro/
 
 # Logs
 logs/
 *.log
+
+# Database
+*.db
+*.sqlite
+prisma/dev.db
+
+# Uploads
+uploads/
+public/uploads/
+
+# OS
+Thumbs.db
