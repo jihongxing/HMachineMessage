@@ -8,7 +8,7 @@ import StructuredData from '@/components/StructuredData';
 import Image from 'next/image';
 import { equipmentApi, favoriteApi } from '@/lib/api';
 import { useAppStore, useUserStore } from '@/lib/store';
-import { ModalContainer as Modal } from '@/components/ui';
+import SimpleModal from '@/components/ui/SimpleModal';
 
 interface Equipment {
   id: string;
@@ -340,7 +340,7 @@ export default function EquipmentDetailPage() {
       </div>
 
       {/* 移动端二维码弹窗 */}
-      <Modal
+      <SimpleModal
         isOpen={showQRModal}
         onClose={() => setShowQRModal(false)}
         title="设备二维码"
@@ -366,7 +366,7 @@ export default function EquipmentDetailPage() {
             </>
           )}
         </div>
-      </Modal>
+      </SimpleModal>
     </div>
   );
 }
