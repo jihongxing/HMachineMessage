@@ -12,6 +12,7 @@ interface EquipmentCardProps {
   priceUnit: string;
   images: string[];
   viewCount?: number;
+  rankLevel?: number; // 0普通/1推荐/2置顶
 }
 
 export default function EquipmentCard({ 
@@ -24,13 +25,31 @@ export default function EquipmentCard({
   price, 
   priceUnit, 
   images, 
-  viewCount 
+  viewCount,
+  rankLevel = 0
 }: EquipmentCardProps) {
+  const isTop = rankLevel === 2;
+  const isRecommend = rankLevel === 1;
+
   return (
     <Link 
       href={`/equipment/${id}`} 
-      className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden"
+      className={`bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden relative ${
+        isTop ? 'ring-2 ring-orange-500' : isRecommend ? 'ring-1 ring-blue-400' : ''
+      }`}
     >
+      {/* 推广标签 */}
+      {isTop && (
+        <div className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-orange-500 text-white text-xs font-medium rounded">
+          置顶
+        </div>
+      )}
+      {isRecommend && (
+        <div className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-blue-500 text-white text-xs font-medium rounded">
+          推荐
+        </div>
+      )}
+
       <div className="relative w-full h-40 md:h-48 bg-gray-200 dark:bg-gray-700">
         {images?.[0] ? (
           <Image 

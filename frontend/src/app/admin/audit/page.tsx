@@ -38,9 +38,9 @@ export default function AuditPage() {
     }
   };
 
-  const handleAudit = async (id: string, status: 'approved' | 'rejected', rejectReason?: string) => {
+  const handleAudit = async (id: string, action: 'approve' | 'reject', reason?: string) => {
     try {
-      const res = await adminApi.auditEquipment(id, { status, rejectReason });
+      await adminApi.auditEquipment(id, { action, reason });
       showToast({ type: 'success', message: '审核成功' });
       loadEquipments();
     } catch (error: any) {
@@ -51,7 +51,7 @@ export default function AuditPage() {
   const handleReject = (id: string) => {
     const reason = prompt('请输入拒绝原因：');
     if (reason) {
-      handleAudit(id, 'rejected', reason);
+      handleAudit(id, 'reject', reason);
     }
   };
 
@@ -114,7 +114,7 @@ export default function AuditPage() {
                       </div>
                       <div className="flex gap-2 mt-3">
                         <button
-                          onClick={() => handleAudit(equipment.id, 'approved')}
+                          onClick={() => handleAudit(equipment.id, 'approve')}
                           className="btn btn-sm btn-primary"
                         >
                           通过

@@ -333,6 +333,130 @@ export class AdminService {
     };
   }
 
+  // 设备管理列表（所有状态）
+  async getEquipmentList(params: {
+    status?: number;
+    keyword?: string;
+    page: number;
+    pageSize: number;
+  }) {
+    const { page, pageSize, status, keyword } = params;
+    const skip = (page - 1) * pageSize;
+
+    const where: any = {
+      status: { not: 4 }, // 排除已删除
+    };
+
+    if (status !== undefined) {
+      where.status = status;
+    }
+
+    if (keyword) {
+      where.OR = [
+        { model: { contains: keyword } },
+        { description: { contains: keyword } },
+      ];
+    }
+
+    const [list, total] = await Promise.all([
+      prisma.equipment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: pageSize,
+        include: {
+          user: {
+            select: {
+              id: true,
+              nickname: true,
+              phone: true,
+            },
+          },
+          province: { select: { name: true } },
+          city: { select: { name: true } },
+          county: { select: { name: true } },
+        },
+      }),
+      prisma.equipment.count({ where }),
+    ]);
+
+    return {
+      list: list.map((item: any) => ({
+        id: item.id.toString(),
+        userId: item.userId.toString(),
+        model: item.model,
+        category1: item.category1,
+        category2: item.category2,
+        province: item.province?.name || '',
+        city: item.city?.name || '',
+        county: item.county?.name || '',
+        price: parseFloat(item.price.toString()),
+        priceUnit: item.priceUnit,
+        images: item.images,
+        status: item.status,
+        viewCount: item.viewCount,
+        user: {
+          id: item.user.id.toString(),
+          nickname: item.user.nickname,
+          phone: item.user.phone,
+        },
+        createdAt: item.createdAt.toISOString(),
+      })),
+      total,
+      page,
+      pageSize,
+    };
+  }
+
+  // 更新设备状态（管理员）
+  async updateEquipmentStatus(equipmentId: bigint, status: number) {
+    const equipment = await prisma.equipment.findUnique({
+      where: { id: equipmentId },
+    });
+
+    if (!equipment) {
+      throw new NotFoundError('设备不存在');
+    }
+
+    if (equipment.status === 4) {
+      throw new BadRequestError('设备已删除');
+    }
+
+    await prisma.equipment.update({
+      where: { id: equipmentId },
+      data: { status },
+    });
+
+    // 创建通知
+    const statusText: Record<number, string> = {
+      0: '待审核',
+      1: '已发布',
+      2: '审核拒绝',
+      3: '已下架',
+    };
+
+    await prisma.notification.create({
+      data: {
+        userId: equipment.userId,
+        type: 'system',
+        title: '设备状态变更',
+        content: `您的设备"${equipment.model}"状态已变更为：${statusText[status] || '未知'}`,
+        relatedId: equipmentId,
+      },
+    });
+  }
+
+  // 批量更新设备状态
+  async batchUpdateEquipmentStatus(ids: bigint[], status: number) {
+    await prisma.equipment.updateMany({
+      where: {
+        id: { in: ids },
+        status: { not: 4 },
+      },
+      data: { status },
+    });
+  }
+
   // 举报列表
   async getReportList(status?: number, page = 1, pageSize = 20) {
     const skip = (page - 1) * pageSize;

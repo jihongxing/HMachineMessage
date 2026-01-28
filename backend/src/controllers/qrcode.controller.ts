@@ -8,23 +8,18 @@ import { AuthRequest } from '../middleware/auth';
 
 export class QRCodeController {
   /**
-   * 生成设备二维码
+   * 生成设备二维码（公开接口）
    */
   generateQRCode = asyncHandler(async (req: AuthRequest, res: Response) => {
     const equipmentId = BigInt(req.params.id);
-    const userId = req.userId!;
 
-    // 验证设备存在且属于当前用户
+    // 验证设备存在
     const equipment = await prisma.equipment.findUnique({
       where: { id: equipmentId },
     });
 
     if (!equipment) {
       throw new AppError('设备不存在', 404);
-    }
-
-    if (equipment.userId !== userId) {
-      throw new AppError('无权操作此设备', 403);
     }
 
     // 如果已有二维码，直接返回

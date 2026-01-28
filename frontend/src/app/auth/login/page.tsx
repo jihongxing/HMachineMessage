@@ -114,6 +114,18 @@ export default function LoginPage() {
             {loading ? '登录中...' : '登录'}
           </button>
 
+          <div className="flex justify-end mb-4">
+            <Link 
+              href="/auth/forgot-password" 
+              style={{ 
+                color: 'var(--text-secondary)',
+                fontSize: '14px',
+              }}
+            >
+              忘记密码？
+            </Link>
+          </div>
+
           <div className="text-center text-sm pt-4" style={{ borderTop: '1px solid var(--border-divider)' }}>
             <span style={{ color: 'var(--text-secondary)' }}>还没有账号？</span>
             <Link 

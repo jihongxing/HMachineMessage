@@ -66,6 +66,8 @@ export default function EquipmentDetailPage() {
     if (!mounted) return;
     fetchEquipment();
     checkFavorite();
+    // 自动生成二维码
+    autoGenerateQRCode();
   }, [mounted, params.id]);
 
   const fetchEquipment = async () => {
@@ -157,9 +159,6 @@ export default function EquipmentDetailPage() {
         `${process.env.NEXT_PUBLIC_API_URL}/qrcode/equipment/${params.id}`,
         {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
         }
       );
       const data = await response.json();
@@ -173,6 +172,24 @@ export default function EquipmentDetailPage() {
       showToast({ type: 'error', message: '生成二维码失败' });
     } finally {
       setQrLoading(false);
+    }
+  };
+
+  // 自动生成二维码（无需登录）
+  const autoGenerateQRCode = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/qrcode/equipment/${params.id}`,
+        {
+          method: 'POST',
+        }
+      );
+      const data = await response.json();
+      if (data.code === 0) {
+        setQrcodeUrl(data.data.qrcodeUrl);
+      }
+    } catch (error) {
+      console.error('自动生成二维码失败:', error);
     }
   };
 
@@ -300,13 +317,9 @@ export default function EquipmentDetailPage() {
                   <p className="text-xs text-gray-500 mt-2">扫码查看设备详情</p>
                 </div>
               ) : (
-                <button
-                  onClick={generateQRCode}
-                  disabled={qrLoading}
-                  className="btn btn-sm w-full"
-                >
-                  {qrLoading ? '生成中...' : '生成二维码'}
-                </button>
+                <div className="w-40 h-40 mx-auto bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center">
+                  <span className="text-gray-400 text-sm">加载中...</span>
+                </div>
               )}
             </div>
           </div>

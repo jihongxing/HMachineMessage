@@ -88,16 +88,16 @@ export default function Upload({
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-4">
         {/* 已上传图片 */}
         {value.map((url, index) => (
-          <div key={url} className="relative group">
+          <div key={url} className="relative group aspect-square">
             <img
               src={url}
               alt=""
-              className="w-full h-32 object-cover rounded border"
+              className="w-full h-full object-cover rounded border"
             />
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 active:opacity-100 transition flex items-center justify-center">
               <button
                 type="button"
                 onClick={() => handleRemove(index)}
@@ -111,7 +111,7 @@ export default function Upload({
 
         {/* 上传按钮 */}
         {value.length < maxCount && (
-          <label className="w-full h-32 border-2 border-dashed rounded flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50">
+          <label className="aspect-square border-2 border-dashed rounded flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20">
             <input
               type="file"
               multiple
@@ -122,7 +122,7 @@ export default function Upload({
             />
             <div className="text-center">
               <div className="text-3xl text-gray-400">+</div>
-              <div className="text-sm text-gray-600 mt-1">上传图片</div>
+              <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mt-1">上传图片</div>
             </div>
           </label>
         )}
@@ -150,7 +150,7 @@ export default function Upload({
       {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
 
       {/* 提示信息 */}
-      <p className="text-gray-600 text-sm mt-1">
+      <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mt-1">
         支持jpg/png/webp格式，单张最大{maxSize}MB，最多{maxCount}张
       </p>
     </div>

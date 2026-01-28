@@ -17,8 +17,8 @@ export interface RegisterDto {
 
 export const authApi = {
   // 发送验证码
-  sendSms: (phone: string) => 
-    apiClient.post('/auth/sms/send', { phone }),
+  sendSms: (phone: string, type: 'register' | 'login' | 'reset' = 'register') => 
+    apiClient.post('/auth/sms/send', { phone, type }),
   
   // 登录
   login: (data: LoginDto) => 

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { CategoryController } from '../controllers/category.controller';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requireLevel } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { z } from 'zod';
 
@@ -11,7 +11,7 @@ const controller = new CategoryController();
 router.get('/tree', controller.getTree);
 router.get('/:id', controller.getById);
 
-// 管理接口
+// 管理接口（需要管理员权限）
 const createSchema = z.object({
   body: z.object({
     parentId: z.number().optional(),
@@ -34,8 +34,8 @@ const updateSchema = z.object({
   }),
 });
 
-router.post('/', authenticate, validate(createSchema), controller.create);
-router.put('/:id', authenticate, validate(updateSchema), controller.update);
-router.delete('/:id', authenticate, controller.deleteCategory);
+router.post('/', authenticate, requireLevel(9), validate(createSchema), controller.create);
+router.put('/:id', authenticate, requireLevel(9), validate(updateSchema), controller.update);
+router.delete('/:id', authenticate, requireLevel(9), controller.deleteCategory);
 
 export default router;

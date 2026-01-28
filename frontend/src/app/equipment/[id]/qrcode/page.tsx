@@ -41,14 +41,34 @@ export default function QRCodePage() {
       const res = await apiClient.get(`/equipment/${params.id}`);
       const equipmentData = res.data?.data || res.data;
       setEquipment(equipmentData);
+      
+      // 如果已有二维码直接显示，否则自动生成
       if (equipmentData?.qrcodeUrl) {
         setQrcodeUrl(equipmentData.qrcodeUrl);
+      } else {
+        // 自动生成二维码
+        await autoGenerateQRCode();
       }
     } catch (error: any) {
       showToast({ type: 'error', message: error.message });
       router.push('/profile/equipment');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const autoGenerateQRCode = async () => {
+    try {
+      const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+      const res = await apiClient.post(`/qrcode/equipment/${params.id}`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const qrUrl = res.data?.data?.qrcodeUrl || res.data?.qrcodeUrl;
+      setQrcodeUrl(qrUrl);
+    } catch (error: any) {
+      console.error('自动生成二维码失败:', error.message);
     }
   };
 

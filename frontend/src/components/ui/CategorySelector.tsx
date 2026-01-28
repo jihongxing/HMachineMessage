@@ -56,11 +56,11 @@ export default function CategorySelector({
 
   return (
     <div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4">
         <select
           value={value[0]}
           onChange={handleCategory1Change}
-          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           required={required}
           disabled={loading}
         >
@@ -75,7 +75,7 @@ export default function CategorySelector({
         <select
           value={value[1]}
           onChange={handleCategory2Change}
-          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           required={required}
           disabled={!value[0]}
         >

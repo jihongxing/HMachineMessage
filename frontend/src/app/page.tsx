@@ -4,6 +4,7 @@ import { getPriceUnitShort } from '@/lib/utils/priceUnit';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useUserStore } from '@/lib/store';
 
 interface Equipment {
   id: string;
@@ -18,104 +19,21 @@ interface Equipment {
   distance?: number;
 }
 
-interface Category {
-  id: number;
-  name: string;
-  slug: string;
-  children: Category[];
-}
-
-interface Region {
-  id: number;
-  name: string;
-  code: string;
-  level: number;
-  parentId: number | null;
-}
-
 export default function Home() {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory1, setSelectedCategory1] = useState<Category | null>(null);
-  const [selectedCategory2, setSelectedCategory2] = useState<string>('');
-  const [userCity, setUserCity] = useState('');
-  const [showCitySelector, setShowCitySelector] = useState(false);
   const [loading, setLoading] = useState(true);
-  
-  // 地区选择相关 - 简化为省市两级
-  const [provinces, setProvinces] = useState<Region[]>([]);
-  const [cities, setCities] = useState<Region[]>([]);
-  const [selectedProvince, setSelectedProvince] = useState<Region | null>(null);
-  const [step, setStep] = useState<1 | 2>(1);
-
-  useEffect(() => {
-    fetchUserLocation();
-    fetchCategories();
-    fetchProvinces();
-  }, []);
+  const { isLoggedIn } = useUserStore();
 
   useEffect(() => {
     fetchEquipments();
-  }, [userCity, selectedCategory1, selectedCategory2]);
-
-  const fetchUserLocation = async () => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/location/ip-location`);
-      const data = await res.json();
-      if (data.code === 0 && data.data?.city) {
-        setUserCity(data.data.city);
-      }
-    } catch (error) {
-      console.error(error);
-      setUserCity('北京市');
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/tree`);
-      const data = await res.json();
-      if (data.code === 0 && data.data) {
-        setCategories(data.data);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const fetchProvinces = async () => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/regions/provinces`);
-      const data = await res.json();
-      if (data.code === 0 && data.data) {
-        setProvinces(data.data);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const fetchCities = async (provinceId: number) => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/regions/cities/${provinceId}`);
-      const data = await res.json();
-      if (data.code === 0 && data.data) {
-        setCities(data.data);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  }, []);
 
   const fetchEquipments = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       params.set('page', '1');
-      params.set('pageSize', '20');
-      if (userCity) params.set('city', userCity);
-      if (selectedCategory1) params.set('category1', selectedCategory1.name);
-      if (selectedCategory2) params.set('category2', selectedCategory2);
+      params.set('pageSize', '8');
       params.set('sort', 'hot');
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/equipment?${params}`);
@@ -130,216 +48,73 @@ export default function Home() {
     }
   };
 
-  const handleCategory1Change = (category: Category | null) => {
-    setSelectedCategory1(category);
-    setSelectedCategory2('');
-  };
-
-  const handleProvinceSelect = (province: Region) => {
-    setSelectedProvince(province);
-    setCities([]);
-    fetchCities(province.id);
-    setStep(2);
-  };
-
-  const handleCitySelect = (city: Region) => {
-    setUserCity(city.name);
-    setShowCitySelector(false);
-    setStep(1);
-  };
-
-  const handleCitySelectorClose = () => {
-    setShowCitySelector(false);
-    setStep(1);
-    setSelectedProvince(null);
-    setCities([]);
-  };
-
   return (
     <div style={{ backgroundColor: 'var(--bg-page)', minHeight: '100vh' }}>
-      {/* 城市选择弹窗 */}
-      {showCitySelector && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-          onClick={handleCitySelectorClose}
-        >
-          <div 
-            className="w-full max-w-md"
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              borderRadius: '12px',
-              maxHeight: '80vh',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-4 border-b" style={{ 
-              backgroundColor: 'var(--bg-card)',
-              borderColor: 'var(--border-divider)' 
-            }}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {step > 1 && (
-                    <button 
-                      onClick={() => {
-                        setStep(1);
-                        setSelectedProvince(null);
-                        setCities([]);
-                      }}
-                      style={{ color: 'var(--color-primary)' }}
-                    >
-                      ← 返回
-                    </button>
-                  )}
-                  <h3 className="text-lg font-bold">
-                    {step === 1 && '选择省份'}
-                    {step === 2 && '选择城市'}
-                  </h3>
-                </div>
-                <button 
-                  onClick={handleCitySelectorClose}
-                  className="text-2xl"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  ×
-                </button>
-              </div>
-              {step > 1 && (
-                <div className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
-                  {selectedProvince?.name}
-                </div>
-              )}
-            </div>
-            <div className="p-4 overflow-auto flex-1">
-              {step === 1 && (
-                <div className="grid grid-cols-3 gap-2">
-                  {provinces.map((province) => (
-                    <button
-                      key={province.id}
-                      onClick={() => handleProvinceSelect(province)}
-                      className="px-3 py-2 rounded text-sm transition hover:opacity-80"
-                      style={{
-                        backgroundColor: 'var(--bg-hover)',
-                        color: 'var(--text-primary)',
-                      }}
-                    >
-                      {province.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {step === 2 && (
-                <div className="grid grid-cols-3 gap-2">
-                  {cities.map((city) => (
-                    <button
-                      key={city.id}
-                      onClick={() => handleCitySelect(city)}
-                      className="px-3 py-2 rounded text-sm transition hover:opacity-80"
-                      style={{
-                        backgroundColor: 'var(--bg-hover)',
-                        color: 'var(--text-primary)',
-                      }}
-                    >
-                      {city.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Hero区域 */}
+      <section className="relative bg-gradient-to-br from-blue-600 to-blue-800 text-white pb-8 md:pb-0">
+        <div className="container px-4 py-10 md:py-20">
+          <div className="max-w-3xl mx-auto text-center">
+            <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4">
+              重型机械租赁平台
+            </h1>
+            <p className="text-sm md:text-lg text-blue-100 mb-8 md:mb-10">
+              海量设备 · 快速对接 · 安全可靠 · 全国覆盖
+            </p>
 
-      <div className="card mb-0" style={{ borderRadius: 0 }}>
-        <div className="container">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              📍 当前位置：
-            </span>
-            <button
-              onClick={() => setShowCitySelector(true)}
-              className="font-bold flex items-center gap-1 hover:opacity-80 transition"
-              style={{ color: 'var(--color-primary)' }}
-            >
-              {userCity || '定位中...'}
-              <span className="text-xs">▼</span>
-            </button>
-          </div>
-
-          <div className="mb-3">
-            <div className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
-              设备类型：
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              <button
-                onClick={() => handleCategory1Change(null)}
-                className="px-3 py-1 rounded-full text-sm whitespace-nowrap transition"
-                style={{
-                  backgroundColor: !selectedCategory1 ? 'var(--color-primary)' : 'var(--bg-hover)',
-                  color: !selectedCategory1 ? 'white' : 'var(--text-primary)',
-                }}
+            {/* CTA按钮 */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/equipment"
+                className="px-8 py-4 bg-white text-blue-600 rounded-lg font-bold hover:bg-blue-50 transition text-base md:text-lg shadow-lg"
               >
-                全部
-              </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategory1Change(cat)}
-                  className="px-3 py-1 rounded-full text-sm whitespace-nowrap transition"
-                  style={{
-                    backgroundColor: selectedCategory1?.id === cat.id ? 'var(--color-primary)' : 'var(--bg-hover)',
-                    color: selectedCategory1?.id === cat.id ? 'white' : 'var(--text-primary)',
-                  }}
-                >
-                  {cat.name}
-                </button>
-              ))}
+                🚜 浏览设备
+              </Link>
+              <Link
+                href={isLoggedIn ? '/equipment/new' : '/auth/login'}
+                className="px-8 py-4 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-400 transition border-2 border-blue-400 text-base md:text-lg"
+              >
+                ✨ 免费发布
+              </Link>
             </div>
           </div>
-
-          {selectedCategory1 && selectedCategory1.children.length > 0 && (
-            <div className="mb-2">
-              <div className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
-                细分类型：
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                <button
-                  onClick={() => setSelectedCategory2('')}
-                  className="px-3 py-1 rounded-full text-sm whitespace-nowrap transition"
-                  style={{
-                    backgroundColor: !selectedCategory2 ? 'var(--color-primary)' : 'var(--bg-hover)',
-                    color: !selectedCategory2 ? 'white' : 'var(--text-primary)',
-                  }}
-                >
-                  全部
-                </button>
-                {selectedCategory1.children.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory2(cat.name)}
-                    className="px-3 py-1 rounded-full text-sm whitespace-nowrap transition"
-                    style={{
-                      backgroundColor: selectedCategory2 === cat.name ? 'var(--color-primary)' : 'var(--bg-hover)',
-                      color: selectedCategory2 === cat.name ? 'white' : 'var(--text-primary)',
-                    }}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
-      </div>
+        
+        {/* 装饰波浪 - 仅桌面端显示 */}
+        <div className="absolute bottom-0 left-0 right-0 hidden md:block">
+          <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 60V30C240 10 480 0 720 10C960 20 1200 40 1440 30V60H0Z" fill="var(--bg-page)" />
+          </svg>
+        </div>
+      </section>
 
-      <div className="container py-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base md:text-lg font-bold">
-            {selectedCategory1 || selectedCategory2 ? '筛选结果' : '附近设备'}
-          </h2>
-          <Link 
+      {/* 核心价值区 */}
+      <section className="container px-4 py-8 md:py-12">
+        <div className="grid grid-cols-4 gap-2 md:gap-6">
+          {[
+            { icon: '🚜', title: '海量设备', desc: '覆盖各类重型机械' },
+            { icon: '⚡', title: '快速对接', desc: '一键联系设备方' },
+            { icon: '🆓', title: '免费发布', desc: '零成本发布设备' },
+            { icon: '🌍', title: '全国覆盖', desc: '服务遍布全国各地' },
+          ].map((item, index) => (
+            <div
+              key={index}
+              className="card p-2 md:p-6 text-center hover:shadow-lg transition"
+            >
+              <div className="text-2xl md:text-4xl mb-1 md:mb-3">{item.icon}</div>
+              <h3 className="font-bold text-xs md:text-base mb-0.5 md:mb-1">{item.title}</h3>
+              <p className="text-[10px] md:text-sm hidden md:block" style={{ color: 'var(--text-secondary)' }}>
+                {item.desc}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 推荐设备 */}
+      <section className="container px-4 pb-8 md:pb-12">
+        <div className="flex items-center justify-between mb-4 md:mb-6">
+          <h2 className="text-lg md:text-xl font-bold">热门设备</h2>
+          <Link
             href="/equipment"
             className="text-sm"
             style={{ color: 'var(--color-primary)' }}
@@ -357,14 +132,14 @@ export default function Home() {
             <p style={{ color: 'var(--text-secondary)' }}>暂无设备</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {equipments.map((equipment) => (
               <Link
                 key={equipment.id}
                 href={`/equipment/${equipment.id}`}
                 className="card p-0 hover:shadow-lg transition"
               >
-                <div className="relative w-full h-32 md:h-48 bg-gray-200">
+                <div className="relative w-full h-32 md:h-44 bg-gray-200">
                   {equipment.images?.[0] ? (
                     <Image
                       src={equipment.images[0]}
@@ -378,20 +153,16 @@ export default function Home() {
                     </div>
                   )}
                 </div>
-                <div className="p-3 md:p-4">
-                  <h3 className="font-bold text-sm md:text-base mb-1 truncate">
+                <div className="p-3">
+                  <h3 className="font-bold text-sm mb-1 truncate">
                     {equipment.model}
                   </h3>
-                  <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
-                    {equipment.category1} / {equipment.category2}
-                  </p>
-                  <p className="text-xs mb-2" style={{ color: 'var(--text-tertiary)' }}>
+                  <p className="text-xs mb-1" style={{ color: 'var(--text-tertiary)' }}>
                     📍 {equipment.city}{equipment.county}
-                    {equipment.distance && ` · ${equipment.distance.toFixed(1)}km`}
                   </p>
-                  <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-error)' }}>
+                  <div className="text-sm md:text-base font-bold" style={{ color: 'var(--color-error)' }}>
                     ¥{equipment.price}
-                    <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="text-xs font-normal" style={{ color: 'var(--text-tertiary)' }}>
                       /{getPriceUnitShort(equipment.priceUnit)}
                     </span>
                   </div>
@@ -400,7 +171,63 @@ export default function Home() {
             ))}
           </div>
         )}
-      </div>
+      </section>
+
+      {/* 底部信息 */}
+      <footer className="border-t" style={{ borderColor: 'var(--border-divider)', backgroundColor: 'var(--bg-card)' }}>
+        <div className="container px-4 py-8 md:py-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            {/* 关于我们 */}
+            <div>
+              <h3 className="font-bold mb-3 text-sm md:text-base">关于我们</h3>
+              <p className="text-xs md:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                重型机械租赁平台致力于为用户提供便捷、安全的机械设备租赁服务，连接设备方与需求方，让重型机械租赁更简单。
+              </p>
+            </div>
+
+            {/* 快速链接 */}
+            <div>
+              <h3 className="font-bold mb-3 text-sm md:text-base">快速链接</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <Link href="/equipment" className="text-xs md:text-sm hover:underline" style={{ color: 'var(--text-secondary)' }}>
+                  设备列表
+                </Link>
+                <Link href="/equipment/new" className="text-xs md:text-sm hover:underline" style={{ color: 'var(--text-secondary)' }}>
+                  免费发布
+                </Link>
+                <Link href="/orders" className="text-xs md:text-sm hover:underline" style={{ color: 'var(--text-secondary)' }}>
+                  我的订单
+                </Link>
+                <Link href="/profile" className="text-xs md:text-sm hover:underline" style={{ color: 'var(--text-secondary)' }}>
+                  个人中心
+                </Link>
+              </div>
+            </div>
+
+            {/* 联系方式 */}
+            <div>
+              <h3 className="font-bold mb-3 text-sm md:text-base">联系我们</h3>
+              <div className="space-y-2 text-xs md:text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <p>📧 jhx800@163.com</p>
+                <p>📞 400-855-1985</p>
+                <p>🕐 工作时间：9:00 - 18:00</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 版权信息 */}
+          <div className="mt-6 md:mt-8 pt-6 border-t text-center" style={{ borderColor: 'var(--border-divider)' }}>
+            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+              © 2024 重型机械租赁平台 · 
+              <Link href="/agreement" className="hover:underline mx-1">用户协议</Link> · 
+              <Link href="/privacy" className="hover:underline mx-1">隐私政策</Link>
+            </p>
+          </div>
+        </div>
+      </footer>
+
+      {/* 移动端底部占位 */}
+      <div className="h-14 md:hidden" />
     </div>
   );
 }

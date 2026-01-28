@@ -72,11 +72,11 @@ export default function RegionSelector({
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-4">
         <select
           value={value?.provinceId || ''}
           onChange={handleProvinceChange}
-          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           required={required}
           disabled={loading}
         >
@@ -91,7 +91,7 @@ export default function RegionSelector({
         <select
           value={value?.cityId || ''}
           onChange={handleCityChange}
-          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           required={required}
           disabled={!value?.provinceId}
         >
@@ -106,7 +106,7 @@ export default function RegionSelector({
         <select
           value={value?.countyId || ''}
           onChange={handleCountyChange}
-          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           required={required}
           disabled={!value?.cityId}
         >

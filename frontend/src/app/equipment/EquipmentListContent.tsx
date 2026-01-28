@@ -21,6 +21,7 @@ interface Equipment {
   priceUnit: string;
   images: string[];
   viewCount: number;
+  rankLevel?: number;
 }
 
 interface Category {
@@ -46,7 +47,6 @@ export default function EquipmentListContent() {
   const pageSize = 20;
 
   // 筛选条件
-  const [keyword, setKeyword] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [category1, setCategory1] = useState('');
   const [category2, setCategory2] = useState('');
@@ -54,24 +54,23 @@ export default function EquipmentListContent() {
   const [cities, setCities] = useState<Region[]>([]);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number>(0);
   const [selectedCityId, setSelectedCityId] = useState<number>(0);
-  const [priceMin, setPriceMin] = useState('');
-  const [priceMax, setPriceMax] = useState('');
   const [sortBy, setSortBy] = useState('latest');
 
-  // 初始化：加载分类和地区数据
+  // 展开状态
+  const [showProvinces, setShowProvinces] = useState(false);
+  const [showCities, setShowCities] = useState(false);
+
+  // 初始化
   useEffect(() => {
     loadCategories();
     loadProvinces();
     
-    // 从URL参数恢复筛选条件
-    const urlKeyword = searchParams.get('keyword');
     const urlCategory1 = searchParams.get('category1');
     const urlCategory2 = searchParams.get('category2');
     const urlProvinceId = searchParams.get('provinceId');
     const urlCityId = searchParams.get('cityId');
     const urlSort = searchParams.get('sort');
     
-    if (urlKeyword) setKeyword(urlKeyword);
     if (urlCategory1) setCategory1(urlCategory1);
     if (urlCategory2) setCategory2(urlCategory2);
     if (urlProvinceId) setSelectedProvinceId(parseInt(urlProvinceId));
@@ -79,7 +78,6 @@ export default function EquipmentListContent() {
     if (urlSort) setSortBy(urlSort);
   }, []);
 
-  // 加载分类
   const loadCategories = async () => {
     try {
       const res = await categoryApi.getTree();
@@ -89,7 +87,6 @@ export default function EquipmentListContent() {
     }
   };
 
-  // 加载省份
   const loadProvinces = async () => {
     try {
       const res = await regionApi.getProvinces();
@@ -99,7 +96,6 @@ export default function EquipmentListContent() {
     }
   };
 
-  // 加载城市
   const loadCities = async (provinceId: number) => {
     try {
       const res = await regionApi.getCities(provinceId);
@@ -109,238 +105,269 @@ export default function EquipmentListContent() {
     }
   };
 
-  // 省份改变
-  const handleProvinceChange = (provinceId: string) => {
-    const id = parseInt(provinceId);
-    setSelectedProvinceId(id);
+  const handleCategory1Select = (name: string) => {
+    setCategory1(name);
+    setCategory2('');
+    setPage(1);
+  };
+
+  const handleCategory2Select = (name: string) => {
+    setCategory2(name);
+    setPage(1);
+  };
+
+  const handleProvinceSelect = (provinceId: number) => {
+    setSelectedProvinceId(provinceId);
     setSelectedCityId(0);
     setCities([]);
-    
-    if (id) {
-      loadCities(id);
+    setShowProvinces(false);
+    setPage(1);
+    if (provinceId) {
+      loadCities(provinceId);
+      setShowCities(true);
     }
   };
 
-  // 一级分类改变
-  const handleCategory1Change = (value: string) => {
-    setCategory1(value);
-    setCategory2('');
+  const handleCitySelect = (cityId: number) => {
+    setSelectedCityId(cityId);
+    setShowCities(false);
+    setPage(1);
   };
 
-  // 获取二级分类列表
   const getCategory2List = () => {
     if (!category1) return [];
     const cat1 = categories.find(c => c.name === category1);
     return cat1?.children || [];
   };
 
-  // 加载设备列表
   useEffect(() => {
     fetchEquipments();
-  }, [page]);
+  }, [page, category1, category2, selectedProvinceId, selectedCityId, sortBy]);
 
   const fetchEquipments = async () => {
     setLoading(true);
     try {
-      const params: any = {
-        page,
-        pageSize,
-      };
-
-      if (keyword) params.keyword = keyword;
+      const params: any = { page, pageSize };
       if (category1) params.category1 = category1;
       if (category2) params.category2 = category2;
       if (selectedProvinceId) params.provinceId = selectedProvinceId;
       if (selectedCityId) params.cityId = selectedCityId;
-      if (priceMin) params.priceMin = parseFloat(priceMin);
-      if (priceMax) params.priceMax = parseFloat(priceMax);
       if (sortBy) params.sort = sortBy;
 
-      console.log('查询参数:', params); // 调试日志
-
       const res = await equipmentApi.getList(params);
-      
-      console.log('查询结果:', res.data); // 调试日志
-      
       setEquipments(res.data?.list || []);
       setTotal(res.data?.total || 0);
     } catch (error: any) {
-      console.error('查询失败:', error); // 调试日志
       showToast({ type: 'error', message: error.message || '加载失败' });
     } finally {
       setLoading(false);
     }
   };
 
-  // 搜索
-  const handleSearch = () => {
-    setPage(1);
-    fetchEquipments();
-    
-    // 更新URL参数
-    const params = new URLSearchParams();
-    if (keyword) params.set('keyword', keyword);
-    if (category1) params.set('category1', category1);
-    if (category2) params.set('category2', category2);
-    if (selectedProvinceId) params.set('provinceId', selectedProvinceId.toString());
-    if (selectedCityId) params.set('cityId', selectedCityId.toString());
-    if (sortBy) params.set('sort', sortBy);
-    
-    router.push(`/equipment?${params.toString()}`);
-  };
-
-  // 重置筛选
   const handleReset = () => {
-    setKeyword('');
     setCategory1('');
     setCategory2('');
     setSelectedProvinceId(0);
     setSelectedCityId(0);
-    setPriceMin('');
-    setPriceMax('');
     setSortBy('latest');
     setPage(1);
     router.push('/equipment');
   };
 
+  const getSelectedProvinceName = () => {
+    const p = provinces.find(p => p.id === selectedProvinceId);
+    return p?.name || '';
+  };
+
+  const getSelectedCityName = () => {
+    const c = cities.find(c => c.id === selectedCityId);
+    return c?.name || '';
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-6">
-        {/* 筛选栏 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
-          <div className="space-y-4">
-            {/* 第一行：关键词搜索 */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="搜索设备型号、描述..."
-                className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-              />
+      <div className="container mx-auto px-3 py-4">
+        
+        {/* 分类选择 - 大按钮横向滚动 */}
+        <div className="mb-4">
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">
+            <button
+              onClick={() => handleCategory1Select('')}
+              className={`flex-shrink-0 px-5 py-3 rounded-full text-base font-medium transition ${
+                !category1 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              全部设备
+            </button>
+            {categories.map(cat => (
               <button
-                onClick={handleSearch}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                key={cat.id}
+                onClick={() => handleCategory1Select(cat.name)}
+                className={`flex-shrink-0 px-5 py-3 rounded-full text-base font-medium transition ${
+                  category1 === cat.name 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600'
+                }`}
               >
-                搜索
+                {cat.name}
               </button>
-              <button
-                onClick={handleReset}
-                className="px-6 py-2 border rounded-lg hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
-              >
-                重置
-              </button>
-            </div>
-
-            {/* 第二行：分类和地区 */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <select
-                value={category1}
-                onChange={(e) => handleCategory1Change(e.target.value)}
-                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-              >
-                <option value="">全部分类</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.name}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={category2}
-                onChange={(e) => setCategory2(e.target.value)}
-                disabled={!category1}
-                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50"
-              >
-                <option value="">全部子分类</option>
-                {getCategory2List().map((cat) => (
-                  <option key={cat.id} value={cat.name}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={selectedProvinceId || ''}
-                onChange={(e) => handleProvinceChange(e.target.value)}
-                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-              >
-                <option value="">全部省份</option>
-                {provinces.map((province) => (
-                  <option key={province.id} value={province.id}>
-                    {province.name}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={selectedCityId || ''}
-                onChange={(e) => setSelectedCityId(parseInt(e.target.value))}
-                disabled={!selectedProvinceId}
-                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50"
-              >
-                <option value="">全部城市</option>
-                {cities.map((city) => (
-                  <option key={city.id} value={city.id}>
-                    {city.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* 第三行：价格和排序 */}
-            <div className="flex flex-wrap gap-3 items-center">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">价格：</span>
-                <input
-                  type="number"
-                  value={priceMin}
-                  onChange={(e) => setPriceMin(e.target.value)}
-                  placeholder="最低价"
-                  className="w-24 px-3 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                />
-                <span>-</span>
-                <input
-                  type="number"
-                  value={priceMax}
-                  onChange={(e) => setPriceMax(e.target.value)}
-                  placeholder="最高价"
-                  className="w-24 px-3 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 ml-auto">
-                <span className="text-sm text-gray-600 dark:text-gray-400">排序：</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-3 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                >
-                  <option value="latest">最新发布</option>
-                  <option value="price_asc">价格从低到高</option>
-                  <option value="price_desc">价格从高到低</option>
-                  <option value="views">浏览最多</option>
-                </select>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* 结果统计 */}
-        <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          共找到 <span className="font-semibold text-blue-600">{total}</span> 个设备
+        {/* 子分类 - 选中一级分类后显示 */}
+        {category1 && getCategory2List().length > 0 && (
+          <div className="mb-4">
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">
+              <button
+                onClick={() => handleCategory2Select('')}
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
+                  !category2 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-gray-100 dark:bg-gray-700'
+                }`}
+              >
+                全部
+              </button>
+              {getCategory2List().map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategory2Select(cat.name)}
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
+                    category2 === cat.name 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-100 dark:bg-gray-700'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 地区和排序 */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          {/* 省份选择 */}
+          <div className="relative">
+            <button
+              onClick={() => { setShowProvinces(!showProvinces); setShowCities(false); }}
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
+                selectedProvinceId 
+                  ? 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300' 
+                  : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              {selectedProvinceId ? getSelectedProvinceName() : '选择省份'} ▼
+            </button>
+            {showProvinces && (
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto w-48">
+                <button
+                  onClick={() => handleProvinceSelect(0)}
+                  className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  全部省份
+                </button>
+                {provinces.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleProvinceSelect(p.id)}
+                    className={`block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      selectedProvinceId === p.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600' : ''
+                    }`}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 城市选择 */}
+          {selectedProvinceId > 0 && cities.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => { setShowCities(!showCities); setShowProvinces(false); }}
+                className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
+                  selectedCityId 
+                    ? 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300' 
+                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600'
+                }`}
+              >
+                {selectedCityId ? getSelectedCityName() : '选择城市'} ▼
+              </button>
+              {showCities && (
+                <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto w-48">
+                  <button
+                    onClick={() => handleCitySelect(0)}
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    全部城市
+                  </button>
+                  {cities.map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => handleCitySelect(c.id)}
+                      className={`block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedCityId === c.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600' : ''
+                      }`}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 排序 */}
+          <div className="flex gap-1 ml-auto">
+            {[
+              { value: 'latest', label: '最新' },
+              { value: 'views', label: '热门' },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setSortBy(opt.value)}
+                className={`px-3 py-2 rounded text-sm transition ${
+                  sortBy === opt.value 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-100 dark:bg-gray-700'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 当前筛选 + 重置 */}
+        {(category1 || selectedProvinceId) && (
+          <div className="flex items-center gap-2 mb-4 text-sm">
+            <span className="text-gray-500">当前：</span>
+            {category1 && <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded">{category1}</span>}
+            {category2 && <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded">{category2}</span>}
+            {selectedProvinceId > 0 && <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300 rounded">{getSelectedProvinceName()}</span>}
+            {selectedCityId > 0 && <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300 rounded">{getSelectedCityName()}</span>}
+            <button onClick={handleReset} className="text-gray-500 hover:text-red-500">✕ 清除</button>
+          </div>
+        )}
+
+        {/* 结果数量 */}
+        <div className="mb-3 text-sm text-gray-500">
+          共 <span className="font-bold text-blue-600">{total}</span> 个设备
         </div>
 
         {/* 设备列表 */}
         {loading ? (
           <Loading />
         ) : equipments.length === 0 ? (
-          <Empty title="暂无设备" description="试试调整筛选条件" />
+          <Empty title="暂无设备" description="试试其他分类或地区" />
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {equipments.map((equipment) => (
                 <EquipmentCard
                   key={equipment.id}
@@ -354,12 +381,12 @@ export default function EquipmentListContent() {
                   priceUnit={getPriceUnitShort(equipment.priceUnit)}
                   images={equipment.images}
                   viewCount={equipment.viewCount}
+                  rankLevel={equipment.rankLevel}
                 />
               ))}
             </div>
 
-            {/* 分页 */}
-            <div className="mt-8">
+            <div className="mt-6">
               <Pagination
                 current={page}
                 total={total}

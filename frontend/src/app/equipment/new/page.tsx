@@ -151,13 +151,13 @@ export default function EquipmentNewPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">发布设备</h1>
+    <div className="max-w-4xl mx-auto px-3 py-4 md:p-6">
+      <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">免费发布</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
         {/* 基本信息 */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">基本信息</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6">
+          <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">基本信息</h2>
 
           <div className="space-y-4">
             <div>
@@ -228,8 +228,8 @@ export default function EquipmentNewPage() {
         </div>
 
         {/* 位置信息 */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">位置信息</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6">
+          <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">位置信息</h2>
 
           <div className="space-y-4">
             <div>
@@ -262,10 +262,10 @@ export default function EquipmentNewPage() {
         </div>
 
         {/* 价格信息 */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">价格信息</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6">
+          <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">价格信息</h2>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">
                 租赁价格 <span className="text-red-600">*</span>
@@ -305,8 +305,8 @@ export default function EquipmentNewPage() {
         </div>
 
         {/* 联系方式 */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">联系方式</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6">
+          <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">联系方式</h2>
 
           <div className="space-y-4">
             <div>
@@ -339,18 +339,18 @@ export default function EquipmentNewPage() {
         </div>
 
         {/* 操作按钮 */}
-        <div className="flex gap-4 justify-end">
+        <div className="flex gap-3 md:gap-4 justify-end pb-16 md:pb-0">
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-6 py-2 border rounded hover:bg-gray-50"
+            className="px-4 md:px-6 py-2 border dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-sm md:text-base"
           >
             取消
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 md:px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm md:text-base"
           >
             {loading ? '提交中...' : '提交发布'}
           </button>

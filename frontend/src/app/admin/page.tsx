@@ -62,10 +62,22 @@ export default function AdminDashboardPage() {
         <div className="card">
           <h2 className="font-bold mb-4">快捷入口</h2>
           <div className="space-y-2">
+            <a href="/admin/equipment" className="block p-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+              <div className="flex items-center justify-between">
+                <span>设备管理</span>
+                <span className="text-blue-600 font-bold">{stats?.equipment?.total || 0}</span>
+              </div>
+            </a>
             <a href="/admin/audit" className="block p-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
               <div className="flex items-center justify-between">
                 <span>待审核设备</span>
                 <span className="text-yellow-600 font-bold">{stats?.equipment?.pending || 0}</span>
+              </div>
+            </a>
+            <a href="/admin/users" className="block p-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+              <div className="flex items-center justify-between">
+                <span>用户管理</span>
+                <span className="text-blue-600 font-bold">{stats?.users?.total || 0}</span>
               </div>
             </a>
           </div>

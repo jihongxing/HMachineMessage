@@ -75,6 +75,42 @@ export class AdminController {
     ApiResponse.success(res, result);
   });
 
+  // 设备管理列表
+  getEquipmentList = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { status, keyword, page = '1', pageSize = '20' } = req.query;
+
+    const result = await adminService.getEquipmentList({
+      status: status !== undefined ? parseInt(status as string) : undefined,
+      keyword: keyword as string,
+      page: parseInt(page as string),
+      pageSize: parseInt(pageSize as string),
+    });
+
+    ApiResponse.success(res, result);
+  });
+
+  // 更新设备状态
+  updateEquipmentStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    await adminService.updateEquipmentStatus(BigInt(id), status);
+
+    ApiResponse.success(res, null, '状态更新成功');
+  });
+
+  // 批量更新设备状态
+  batchUpdateEquipmentStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { ids, status } = req.body;
+
+    await adminService.batchUpdateEquipmentStatus(
+      ids.map((id: string) => BigInt(id)),
+      status
+    );
+
+    ApiResponse.success(res, null, '批量更新成功');
+  });
+
   // 举报列表
   getReportList = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { status, page = '1', pageSize = '20' } = req.query;

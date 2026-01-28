@@ -198,6 +198,13 @@ export class EquipmentService {
     if (filters.cityId) where.cityId = filters.cityId;
     if (filters.countyId) where.countyId = filters.countyId;
 
+    // 获取当前筛选的区域信息，用于推广排序
+    const currentRegion = {
+      provinceId: filters.provinceId,
+      cityId: filters.cityId,
+      countyId: filters.countyId,
+    };
+
     if (filters.keyword) {
       where.OR = [
         { model: { contains: filters.keyword } },
@@ -271,20 +278,97 @@ export class EquipmentService {
           parseFloat(item.longitude.toString())
         );
       }
-      return this.formatEquipmentListItem(item, distance);
+      
+      // 计算有效推广分数（根据区域匹配度）
+      const rankScore = this.calculateRankScore(item, currentRegion);
+      
+      return {
+        ...this.formatEquipmentListItem(item, distance),
+        _rankScore: rankScore,
+      };
     });
+
+    // 按推广分数重新排序（推广分数 > 原排序）
+    if (sort !== 'price_asc' && sort !== 'price_desc') {
+      items.sort((a: any, b: any) => {
+        // 先按推广分数排序
+        if (b._rankScore !== a._rankScore) {
+          return b._rankScore - a._rankScore;
+        }
+        // 推广分数相同时，按原排序规则
+        if (sort === 'latest' || sort === 'time') {
+          return 0; // 保持原顺序（已按createdAt排序）
+        }
+        if (sort === 'views' || sort === 'hot') {
+          return (b.viewCount || 0) - (a.viewCount || 0);
+        }
+        return 0;
+      });
+    }
+
+    // 移除内部排序字段
+    const result = items.map(({ _rankScore, ...rest }: any) => rest);
 
     // 如果按距离排序，重新排序
     if (sort === 'distance' && latitude && longitude) {
-      items.sort((a: any, b: any) => (a.distance || Infinity) - (b.distance || Infinity));
+      result.sort((a: any, b: any) => (a.distance || Infinity) - (b.distance || Infinity));
     }
 
     return {
-      list: items,
+      list: result,
       total,
       page,
       pageSize,
     };
+  }
+
+  // 计算推广分数（根据区域匹配度）
+  private calculateRankScore(
+    equipment: any,
+    currentRegion: { provinceId?: number; cityId?: number; countyId?: number }
+  ): number {
+    // 未推广或已过期
+    if (!equipment.rankLevel || equipment.rankLevel === 0) return 0;
+    if (equipment.rankExpire && new Date(equipment.rankExpire) < new Date()) return 0;
+
+    const rankRegion = equipment.rankRegion; // province/city/county
+    if (!rankRegion) return 0;
+
+    // 基础分数：置顶(2) > 推荐(1)
+    const baseScore = equipment.rankLevel === 2 ? 200 : 100;
+
+    // 区域匹配检查
+    // 省级推广：在该省下的所有市县都有效
+    if (rankRegion === 'province') {
+      if (currentRegion.provinceId && equipment.provinceId === currentRegion.provinceId) {
+        return baseScore + 30; // 省级推广，区域匹配
+      }
+      if (!currentRegion.provinceId) {
+        return baseScore + 10; // 省级推广，无区域筛选时也有效但分数较低
+      }
+    }
+
+    // 市级推广：在该市下的所有县都有效
+    if (rankRegion === 'city') {
+      if (currentRegion.cityId && equipment.cityId === currentRegion.cityId) {
+        return baseScore + 20; // 市级推广，区域匹配
+      }
+      if (currentRegion.provinceId && equipment.provinceId === currentRegion.provinceId && !currentRegion.cityId) {
+        return baseScore + 5; // 市级推广，省级筛选时部分有效
+      }
+    }
+
+    // 县级推广：仅在该县有效
+    if (rankRegion === 'county') {
+      if (currentRegion.countyId && equipment.countyId === currentRegion.countyId) {
+        return baseScore + 10; // 县级推广，区域匹配
+      }
+      if (currentRegion.cityId && equipment.cityId === currentRegion.cityId && !currentRegion.countyId) {
+        return baseScore + 3; // 县级推广，市级筛选时部分有效
+      }
+    }
+
+    return 0; // 区域不匹配，不应用推广
   }
 
   // 我的设备列表

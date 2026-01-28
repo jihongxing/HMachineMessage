@@ -11,6 +11,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [mounted, setMounted] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -28,7 +29,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return;
       }
 
-      // 如果没有用户信息，加载用户信息
       if (!user && hasToken) {
         try {
           const res = await apiClient.get('/user/profile');
@@ -67,29 +67,64 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
+  const navItems = [
+    { href: '/admin', icon: '📊', label: '数据概览' },
+    { href: '/admin/equipment', icon: '🚜', label: '设备管理' },
+    { href: '/admin/categories', icon: '📁', label: '分类管理' },
+    { href: '/admin/audit', icon: '✅', label: '设备审核' },
+    { href: '/admin/users', icon: '👥', label: '用户管理' },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* 移动端顶部导航 */}
+      <div className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+        <div className="flex items-center justify-between px-4 py-3">
+          <h1 className="text-lg font-bold">后台管理</h1>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            {menuOpen ? '✕' : '☰'}
+          </button>
+        </div>
+        {menuOpen && (
+          <nav className="px-4 pb-4 space-y-1">
+            {navItems.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={() => setMenuOpen(false)}
+                className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                {item.icon} {item.label}
+              </a>
+            ))}
+          </nav>
+        )}
+      </div>
+
       <div className="flex">
-        {/* 侧边栏 */}
-        <aside className="w-64 bg-white dark:bg-gray-800 min-h-screen border-r border-gray-200 dark:border-gray-700">
+        {/* 桌面端侧边栏 */}
+        <aside className="hidden md:block w-64 bg-white dark:bg-gray-800 min-h-screen border-r border-gray-200 dark:border-gray-700">
           <div className="p-6">
             <h1 className="text-xl font-bold">后台管理</h1>
           </div>
           <nav className="px-4">
-            <a href="/admin" className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
-              📊 数据概览
-            </a>
-            <a href="/admin/audit" className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
-              ✅ 设备审核
-            </a>
-            <a href="/admin/users" className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
-              👥 用户管理
-            </a>
+            {navItems.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                {item.icon} {item.label}
+              </a>
+            ))}
           </nav>
         </aside>
 
         {/* 主内容区 */}
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           {children}
         </main>
       </div>
